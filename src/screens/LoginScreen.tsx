@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -14,7 +13,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { AuthStackParamList } from "../navigation/AuthStack";
-import { colors, spacing, borderRadius, typography, shadows } from "../constants/theme";
+import ParticleBackground from "../components/ParticleBackground";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -22,112 +21,129 @@ const LoginScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
+    alert("Button clicked! Email: " + email);
+    console.log("Login button pressed - email:", email);
+    
     if (!email || !password) {
-      Alert.alert("Missing fields", "Please enter email and password.");
+      alert("Please enter email and password");
       return;
     }
 
     setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-    } catch (error: any) {
-      Alert.alert("Login failed", error?.message || "Unable to login.");
-    } finally {
-      setLoading(false);
-    }
+    signInWithEmailAndPassword(auth, email.trim(), password)
+      .then(() => {
+        alert("Login successful!");
+        console.log("Login successful");
+      })
+      .catch((error: any) => {
+        alert("Login failed: " + (error?.message || "Unknown error"));
+        console.log("Login error:", error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.wrapper}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.container}>
-        {/* Logo & Branding */}
-        <View style={styles.brandSection}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoIcon}>{'</>'}</Text>
-          </View>
-          <Text style={styles.brandName}>CodeDaily</Text>
-          <Text style={styles.tagline}>Master coding, one problem at a time</Text>
-        </View>
+    <View style={styles.wrapper}>
+      {/* Particle Animation Background */}
+      <ParticleBackground />
 
-        {/* Login Form */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Sign In</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <TextInput
-              placeholder="Enter your email"
-              placeholderTextColor={colors.textTertiary}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              onFocus={() => setFocusedInput('email')}
-              onBlur={() => setFocusedInput(null)}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.container}>
+          {/* Form Box */}
+          <View style={styles.formBox}>
+            {/* Title */}
+            <Text style={styles.title}>Login</Text>
+            <Text style={styles.subtitle}>Welcome Back</Text>
+
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                style={styles.inputField}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <Text style={[
+                styles.label,
+                (emailFocused || email) && styles.labelActive
+              ]}>
+                Email
+              </Text>
+              <View style={styles.inputBorderDefault} />
+              {emailFocused && <View style={styles.glowLine} />}
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                style={styles.inputField}
+                secureTextEntry
+              />
+              <Text style={[
+                styles.label,
+                (passwordFocused || password) && styles.labelActive
+              ]}>
+                Password
+              </Text>
+              <View style={styles.inputBorderDefault} />
+              {passwordFocused && <View style={styles.glowLine} />}
+            </View>
+
+            {/* Remember & Forgot */}
+            <View style={styles.rememberForgot}>
+              <View style={styles.remember}>
+                <View style={styles.checkbox} />
+                <Text style={styles.rememberLabel}>Remember me</Text>
+              </View>
+              <TouchableOpacity>
+                <Text style={styles.forgot}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity
               style={[
-                styles.input,
-                focusedInput === 'email' && styles.inputFocused
+                styles.loginBtn,
+                loading && styles.loginBtnDisabled,
               ]}
-            />
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              {loading ? (
+                <ActivityIndicator color="#00d4ff" size="small" />
+              ) : (
+                <Text style={styles.loginBtnText}>SIGN IN</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Signup Link */}
+            <View style={styles.signupLink}>
+              <Text style={styles.signupText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                <Text style={styles.signupLinkText}>Register</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Password</Text>
-            <TextInput
-              placeholder="Enter your password"
-              placeholderTextColor={colors.textTertiary}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setFocusedInput('password')}
-              onBlur={() => setFocusedInput(null)}
-              style={[
-                styles.input,
-                focusedInput === 'password' && styles.inputFocused
-              ]}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleLogin} 
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.textWhite} />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate("Register")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryButtonText}>Create an Account</Text>
-          </TouchableOpacity>
         </View>
-
-        {/* Footer */}
-        <Text style={styles.footer}>
-          Practice daily • Track progress • Ace interviews
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -136,131 +152,169 @@ export default LoginScreen;
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: colors.bgSecondary,
+    backgroundColor: "#000000",
+  },
+  keyboardView: {
+    flex: 1,
+    zIndex: 10,
   },
   container: {
     flex: 1,
-    padding: spacing.xxl,
     justifyContent: "center",
     alignItems: "center",
-    maxWidth: 440,
-    alignSelf: "center",
+    padding: 20,
+    zIndex: 10,
+  },
+  formBox: {
     width: "100%",
+    maxWidth: 360,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 24,
+    padding: 40,
+    borderWidth: 1,
+    borderColor: "rgba(0, 212, 255, 0.3)",
+    shadowColor: "#00d4ff",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 20,
+    zIndex: 10,
   },
-  brandSection: {
-    alignItems: "center",
-    marginBottom: spacing.xxxl,
-  },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.bgDark,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-    ...shadows.lg,
-  },
-  logoIcon: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.warning,
-    fontFamily: "Menlo, monospace",
-  },
-  brandName: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  tagline: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  formCard: {
-    width: "100%",
-    backgroundColor: colors.bgPrimary,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xxl,
-    ...shadows.md,
-  },
-  formTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
+  title: {
+    color: "#00d4ff",
     textAlign: "center",
-    marginBottom: spacing.xl,
+    marginBottom: 10,
+    fontWeight: "700",
+    letterSpacing: 3,
+    fontSize: 24,
+    textShadowColor: "rgba(0, 212, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  subtitle: {
+    color: "rgba(0, 212, 255, 0.7)",
+    textAlign: "center",
+    marginBottom: 25,
+    fontSize: 14,
+    letterSpacing: 1,
   },
   inputGroup: {
-    marginBottom: spacing.lg,
+    position: "relative",
+    marginBottom: 25,
+    height: 45,
   },
-  inputLabel: {
-    ...typography.bodySmall,
-    fontWeight: "500",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.bgSecondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+  inputField: {
+    width: "100%",
+    height: "100%",
+    paddingVertical: 12,
+    paddingHorizontal: 0,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: "#00d4ff",
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    zIndex: 2,
   },
-  inputFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.bgPrimary,
+  label: {
+    position: "absolute",
+    top: 12,
+    left: 0,
+    color: "rgba(0, 212, 255, 0.7)",
+    fontSize: 15,
+    zIndex: 1,
   },
-  button: {
-    backgroundColor: colors.success,
-    paddingVertical: spacing.lg,
-    borderRadius: borderRadius.md,
+  labelActive: {
+    top: -12,
+    fontSize: 12,
+    color: "#00d4ff",
+    textShadowColor: "rgba(0, 212, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
+    letterSpacing: 1,
+  },
+  inputBorderDefault: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "rgba(0, 212, 255, 0.3)",
+  },
+  glowLine: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: "#00d4ff",
+    shadowColor: "#00d4ff",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
+  },
+  rememberForgot: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.md,
-    ...shadows.sm,
+    marginBottom: 25,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: colors.textWhite,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  divider: {
+  remember: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: spacing.xl,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    paddingHorizontal: spacing.md,
-    ...typography.caption,
-    color: colors.textTertiary,
-  },
-  secondaryButton: {
-    backgroundColor: colors.bgSecondary,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: "center",
+  checkbox: {
+    width: 16,
+    height: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#00d4ff",
+    borderRadius: 2,
+    marginRight: 8,
   },
-  secondaryButtonText: {
-    color: colors.textPrimary,
+  rememberLabel: {
+    color: "rgba(0, 212, 255, 0.8)",
+    fontSize: 13,
+  },
+  forgot: {
+    color: "rgba(0, 212, 255, 0.8)",
+    fontSize: 13,
+  },
+  loginBtn: {
+    width: "100%",
+    height: 48,
+    backgroundColor: "#000000",
+    borderWidth: 1,
+    borderColor: "#00d4ff",
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+    zIndex: 100,
+  },
+  loginBtnPressed: {
+    backgroundColor: "rgba(0, 212, 255, 0.2)",
+    transform: [{ scale: 0.98 }],
+  },
+  loginBtnDisabled: {
+    opacity: 0.6,
+  },
+  loginBtnText: {
+    color: "#00d4ff",
     fontSize: 15,
     fontWeight: "500",
+    letterSpacing: 2,
   },
-  footer: {
-    ...typography.caption,
-    color: colors.textTertiary,
-    marginTop: spacing.xxl,
-    textAlign: "center",
+  signupLink: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  signupText: {
+    color: "rgba(0, 212, 255, 0.7)",
+    fontSize: 13,
+  },
+  signupLinkText: {
+    color: "#00d4ff",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });
