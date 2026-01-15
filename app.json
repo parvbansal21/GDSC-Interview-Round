@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Daily Coding Question App",
+    "slug": "daily-coding-question-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"],
+    "jsEngine": "hermes",
+    "sdkVersion": "50.0.0",
+    "userInterfaceStyle": "light"
+  }
+}
