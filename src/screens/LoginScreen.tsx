@@ -23,24 +23,24 @@ const LoginScreen = ({ navigation }: Props) => {
   const [loading, setLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = () => {
-    alert("Button clicked! Email: " + email);
-    console.log("Login button pressed - email:", email);
+    setError("");
     
     if (!email || !password) {
-      alert("Please enter email and password");
+      setError("Please enter email and password");
       return;
     }
 
     setLoading(true);
     signInWithEmailAndPassword(auth, email.trim(), password)
       .then(() => {
-        alert("Login successful!");
         console.log("Login successful");
       })
       .catch((error: any) => {
-        alert("Login failed: " + (error?.message || "Unknown error"));
+        setError(error?.message || "Login failed");
         console.log("Login error:", error);
       })
       .finally(() => {
@@ -63,6 +63,13 @@ const LoginScreen = ({ navigation }: Props) => {
             {/* Title */}
             <Text style={styles.title}>Login</Text>
             <Text style={styles.subtitle}>Welcome Back</Text>
+
+            {/* Error Message */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
             {/* Email Input */}
             <View style={styles.inputGroup}>
@@ -92,9 +99,16 @@ const LoginScreen = ({ navigation }: Props) => {
                 onChangeText={setPassword}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
-                style={styles.inputField}
-                secureTextEntry
+                style={[styles.inputField, { paddingRight: 45 }]}
+                secureTextEntry={!showPassword}
               />
+              {/* Eye Icon for Password Visibility */}
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
               <Text style={[
                 styles.label,
                 (passwordFocused || password) && styles.labelActive
@@ -316,5 +330,49 @@ const styles = StyleSheet.create({
     color: "#00d4ff",
     fontSize: 13,
     fontWeight: "500",
+  },
+  errorBox: {
+    marginBottom: 15,
+  },
+  errorText: {
+    color: "#ff4757",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  successBox: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    borderWidth: 1,
+    borderColor: "#10B981",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+  },
+  successText: {
+    color: "#10B981",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  resendBtn: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(0, 212, 255, 0.2)",
+    borderRadius: 8,
+    alignSelf: "center",
+  },
+  resendText: {
+    color: "#00d4ff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 0,
+    top: 8,
+    padding: 8,
+    zIndex: 5,
+  },
+  eyeIconText: {
+    fontSize: 18,
   },
 });
