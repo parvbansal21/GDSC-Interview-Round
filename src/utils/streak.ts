@@ -1,6 +1,3 @@
-import { getDateKey } from "../services/dailyQuestionService";
-
-// Generate last N date keys (UTC) including today
 export const getLastNDaysKeys = (days: number) => {
   const keys: string[] = [];
   const today = new Date();

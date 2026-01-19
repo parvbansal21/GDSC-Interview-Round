@@ -10,16 +10,18 @@ import {
 } from 'react-native';
 import { colors, spacing, borderRadius, typography, shadows } from '../constants/theme';
 import {
-  executeCode,
   getStarterCode,
   Language,
   languageNames,
 } from '../services/compilerService';
+import { runCode, submitSolution } from '../services/judgeService';
 
 interface CodeEditorPanelProps {
   onSubmit: (code: string, language: Language) => void;
   isSubmitting: boolean;
   hasSubmitted?: boolean;
+  sampleTestcases?: Array<{ input: string; output: string }>;
+  submitTestcases?: Array<{ input: string; output: string }>;
 }
 
 const languages: Language[] = ['python', 'javascript', 'cpp', 'java', 'c'];
@@ -28,15 +30,19 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({
   onSubmit,
   isSubmitting,
   hasSubmitted,
+  sampleTestcases,
+  submitTestcases,
 }) => {
   const [code, setCode] = useState(getStarterCode('python'));
   const [language, setLanguage] = useState<Language>('python');
   const [stdin, setStdin] = useState('');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isSubmittingLocal, setIsSubmittingLocal] = useState(false);
   const [activeTab, setActiveTab] = useState<'code' | 'testcases'>('code');
   const [runResult, setRunResult] = useState<{
     success: boolean;
+    label: string;
     time?: string;
     memory?: string;
   } | null>(null);
@@ -56,29 +62,84 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({
     setRunResult(null);
 
     try {
-      const result = await executeCode(code, language, stdin);
-      
-      setRunResult({
-        success: result.success,
-        time: result.executionTime,
-        memory: '12.4 MB', // Simulated
-      });
+      if (sampleTestcases && sampleTestcases.length > 0) {
+        // Run against provided sample testcases and show per-test results
+        const resp = await runCode(code, language, { testcases: sampleTestcases });
+        // expect resp.results: [{ input, expected, output, verdict, error }]
+        const results = resp.results || [];
+        const summaryLines = results.map((r: any, idx: number) => {
+          const ok = r.verdict === 'Accepted';
+          return `Case ${idx + 1}: ${ok ? '✓ Accepted' : '✗ ' + (r.verdict || 'Wrong')}\nInput:\n${r.input}\nExpected:\n${r.expected}\nOutput:\n${r.output || r.error || ''}`;
+        });
 
-      if (result.success) {
-        setOutput(result.output || '(no output)');
+        const anyFailed = results.some((r: any) => r.verdict !== 'Accepted');
+        setRunResult({
+          success: !anyFailed,
+          label: anyFailed ? 'Sample Failed' : 'Sample Passed',
+          time: undefined,
+          memory: '12.4 MB',
+        });
+        setOutput(summaryLines.join('\n\n'));
       } else {
-        setOutput(result.error || 'Unknown error');
+        // Run single stdin execution
+        const resp = await runCode(code, language, { stdin });
+        // server /run may return { results } or a simple run response; normalize
+        if (resp.results && Array.isArray(resp.results)) {
+          const first = resp.results[0] || {};
+          setRunResult({ success: first.verdict === 'Accepted', label: first.verdict || 'Run complete', time: undefined, memory: '12.4 MB' });
+          setOutput(first.output || first.error || '(no output)');
+        } else if (resp.success !== undefined) {
+          setRunResult({ success: resp.success, label: resp.status || (resp.success ? 'Run complete' : 'Error'), time: resp.executionTime, memory: '12.4 MB' });
+          setOutput(resp.output || resp.error || '(no output)');
+        } else {
+          setOutput(JSON.stringify(resp));
+        }
       }
     } catch (error: any) {
-      setRunResult({ success: false });
+      setRunResult({ success: false, label: 'Error' });
       setOutput(error?.message || 'Failed to run code');
     } finally {
       setIsRunning(false);
     }
   };
 
-  const handleSubmit = () => {
-    onSubmit(code, language);
+  const handleSubmit = async () => {
+    if (!code.trim()) return;
+
+    if (!submitTestcases || submitTestcases.length === 0) {
+      onSubmit(code, language);
+      return;
+    }
+
+    setIsSubmittingLocal(true);
+    setOutput('');
+    setRunResult(null);
+
+    try {
+      const result = await submitSolution(code, language, submitTestcases);
+      const label = result.status || (result.success ? 'Accepted' : 'Wrong Answer');
+
+      setRunResult({
+        success: result.success && label === 'Accepted',
+        label,
+        time: result.executionTime,
+      });
+
+      if (result.success) {
+        setOutput(result.output || 'All test cases passed.');
+      } else if (result.status === 'Wrong Answer') {
+        setOutput(
+          `Wrong Answer\n\nExpected: ${result.expectedOutput || ''}\nYour Output: ${result.output || ''}`
+        );
+      } else {
+        setOutput(result.error || 'Submission failed');
+      }
+    } catch (error: any) {
+      setRunResult({ success: false, label: 'Error' });
+      setOutput(error?.message || 'Failed to submit code');
+    } finally {
+      setIsSubmittingLocal(false);
+    }
   };
 
   // Calculate line numbers
@@ -182,7 +243,7 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({
                     styles.resultText,
                     runResult.success ? styles.resultTextSuccess : styles.resultTextError
                   ]}>
-                    {runResult.success ? '✓ Accepted' : '✗ Error'}
+                    {runResult.success ? `✓ ${runResult.label}` : `✗ ${runResult.label}`}
                   </Text>
                   {runResult.success && (
                     <View style={styles.statsRow}>
@@ -220,12 +281,12 @@ const CodeEditorPanel: React.FC<CodeEditorPanelProps> = ({
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (isSubmitting || hasSubmitted) && styles.buttonDisabled,
+            (isSubmitting || isSubmittingLocal || hasSubmitted) && styles.buttonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={isSubmitting || hasSubmitted}
+          disabled={isSubmitting || isSubmittingLocal || hasSubmitted}
         >
-          {isSubmitting ? (
+          {isSubmitting || isSubmittingLocal ? (
             <ActivityIndicator color={colors.textWhite} size="small" />
           ) : (
             <Text style={styles.submitButtonText}>

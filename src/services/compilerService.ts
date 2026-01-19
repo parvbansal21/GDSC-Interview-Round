@@ -1,6 +1,3 @@
-// Code compilation service using Piston API (free, no API key needed)
-// Supports: Python, JavaScript, C++, Java, and more
-
 const PISTON_API = "https://emkc.org/api/v2/piston";
 
 export type Language = "python" | "javascript" | "cpp" | "java" | "c";
@@ -18,7 +15,6 @@ interface ExecuteResult {
   executionTime?: string;
 }
 
-// Language configurations for Piston API
 const languageConfig: Record<Language, { language: string; version: string }> = {
   python: { language: "python", version: "3.10.0" },
   javascript: { language: "javascript", version: "18.15.0" },
@@ -27,7 +23,6 @@ const languageConfig: Record<Language, { language: string; version: string }> = 
   c: { language: "c", version: "10.2.0" },
 };
 
-// Get available runtimes
 export const getRuntimes = async (): Promise<PistonRuntime[]> => {
   try {
     const response = await fetch(`${PISTON_API}/runtimes`);
@@ -38,7 +33,6 @@ export const getRuntimes = async (): Promise<PistonRuntime[]> => {
   }
 };
 
-// Execute code
 export const executeCode = async (
   code: string,
   language: Language,
@@ -124,7 +118,6 @@ export const executeCode = async (
   }
 };
 
-// Get file extension for language
 const getFileName = (language: Language): string => {
   const extensions: Record<Language, string> = {
     python: "main.py",
@@ -136,7 +129,6 @@ const getFileName = (language: Language): string => {
   return extensions[language];
 };
 
-// Get starter code for each language
 export const getStarterCode = (language: Language): string => {
   const starters: Record<Language, string> = {
     python: `# Write your solution here
@@ -185,7 +177,6 @@ int main() {
   return starters[language];
 };
 
-// Display names for languages
 export const languageNames: Record<Language, string> = {
   python: "Python",
   javascript: "JavaScript",

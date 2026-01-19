@@ -23,6 +23,8 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
 import { lightTheme, darkTheme } from '../theme/theme';
 import StatCard from '../components/StatCard';
+import AnimatedGridBackground from '../components/AnimatedGridBackground';
+import AnimatedPressable from '../components/AnimatedPressable';
 
 // Helper to get last N days date keys
 const getLastNDaysKeys = (n) => {
@@ -233,6 +235,7 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <AnimatedGridBackground color={colors.border} />
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       
       <ScrollView 
@@ -362,13 +365,9 @@ const DashboardScreen = () => {
               </View>
 
               {/* Sign Out Button */}
-              <TouchableOpacity
-                style={styles.signOutBtn}
-                onPress={handleSignOut}
-                activeOpacity={0.8}
-              >
+              <AnimatedPressable style={styles.signOutBtn} onPress={handleSignOut}>
                 <Text style={styles.signOutText}>🚪 Sign Out</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
           </View>
         </Modal>
@@ -401,6 +400,7 @@ const DashboardScreen = () => {
             value={stats.questionsAttempted}
             accentColor={colors.accentGreen}
             theme={theme}
+            index={0}
           />
 
           {/* Total Submissions */}
@@ -410,6 +410,7 @@ const DashboardScreen = () => {
             value={stats.totalSubmissions}
             accentColor={colors.accentBlue}
             theme={theme}
+            index={1}
           />
 
           {/* Current Streak */}
@@ -419,6 +420,7 @@ const DashboardScreen = () => {
             value={stats.currentStreak}
             accentColor={colors.accentOrange}
             theme={theme}
+            index={2}
           />
 
           {/* Longest Streak */}
@@ -428,6 +430,7 @@ const DashboardScreen = () => {
             value={stats.longestStreak}
             accentColor={colors.accentPurple}
             theme={theme}
+            index={3}
           />
         </View>
 
@@ -487,15 +490,12 @@ const DashboardScreen = () => {
           Quick Actions
         </Text>
 
-        <TouchableOpacity 
-          style={[styles.actionButton, { 
-            backgroundColor: colors.accentBlue,
-          }]}
-          activeOpacity={0.8}
+        <AnimatedPressable
+          style={[styles.actionButton, { backgroundColor: colors.accentBlue }]}
           onPress={() => navigation.navigate('Home')}
         >
           <Text style={styles.actionButtonText}>📚 Start Today's Question</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
 
         {/* ============================================ */}
         {/* FOOTER MESSAGE */}

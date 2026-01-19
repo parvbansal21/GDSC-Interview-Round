@@ -1,52 +1,89 @@
-/**
- * StatCard Component
- * 
- * A reusable card component for displaying statistics on the dashboard.
- * Designed to be clean, minimal, and visually appealing.
- * 
- * FIREBASE CONNECTION (Future):
- * - Pass real values from Firestore queries
- * - Value prop will come from: users/{uid}/stats/{statName}
- * 
- * Props:
- * - emoji: Icon/emoji to display
- * - title: Stat label
- * - value: Numeric value to display
- * - accentColor: Color for the accent/highlight
- * - theme: Current theme object
- */
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withRepeat,
+  Easing,
+} from 'react-native-reanimated';
 
-const StatCard = ({ emoji, title, value, accentColor, theme }) => {
+const StatCard = ({ emoji, title, value, accentColor, theme, index = 0 }) => {
   const colors = theme.colors;
+  const enter = useSharedValue(0);
+  const glow = useSharedValue(0);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    enter.value = withDelay(
+      index * 90,
+      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) })
+    );
+    glow.value = withRepeat(
+      withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+
+    if (emoji === '🔥' || emoji === '⭐') {
+      pulse.value = withRepeat(
+        withTiming(1.08, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true
+      );
+    }
+  }, [enter, glow, pulse, index, emoji]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [
+      { translateY: (1 - enter.value) * 12 },
+      { scale: 0.98 + enter.value * 0.02 },
+    ],
+    shadowOpacity: 0.12 + glow.value * 0.18,
+    shadowRadius: 10 + glow.value * 8,
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.08 + glow.value * 0.22,
+  }));
+
+  const emojiStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
 
   return (
-    <View style={[styles.card, { 
-      backgroundColor: colors.cardBackground,
-      shadowColor: colors.shadow,
-      borderColor: colors.border,
-    }]}>
-      {/* Accent bar on left side */}
+    <Animated.View
+      style={[
+        styles.card,
+        cardStyle,
+        {
+          backgroundColor: colors.cardBackground,
+          shadowColor: accentColor,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.glowRing, { borderColor: accentColor }, glowStyle]}
+      />
+
       <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
-      
-      {/* Card content */}
+
       <View style={styles.content}>
-        {/* Emoji icon */}
-        <Text style={styles.emoji}>{emoji}</Text>
-        
-        {/* Value - large and prominent */}
-        <Text style={[styles.value, { color: colors.textPrimary }]}>
+        <Animated.Text style={[styles.emoji, emojiStyle]}>{emoji}</Animated.Text>
+
+        <Text style={[styles.value, { color: colors.textPrimary }]}> 
           {value}
         </Text>
-        
-        {/* Title - subtle below the value */}
-        <Text style={[styles.title, { color: colors.textSecondary }]}>
+
+        <Text style={[styles.title, { color: colors.textSecondary }]}> 
           {title}
         </Text>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -57,12 +94,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    // Shadow for iOS
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 12,
-    // Elevation for Android
     elevation: 4,
+  },
+  glowRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1,
+    borderRadius: 16,
   },
   accentBar: {
     height: 4,

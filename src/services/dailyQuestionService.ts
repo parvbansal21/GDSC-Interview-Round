@@ -1,30 +1,9 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import type { Transaction } from "firebase/firestore";
-import { auth, db } from "./firebase";
-import {
-  DailyAttempt,
-  DailyQuestion,
-  DailySolution,
-  UserProfile,
-} from "../types/models";
-
-// -----------------------------
-// Date helpers
-// -----------------------------
 const parseDateKey = (dateKey: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 };
 
 export const getDateKey = (date: Date = new Date()) => {
-  // Use UTC so all users see the same daily question globally
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
@@ -38,11 +17,6 @@ const diffDays = (fromKey: string, toKey: string) => {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 };
 
-// -----------------------------
-// Core logic functions
-// -----------------------------
-
-// Fetch today's question (same for all users) by date-based doc
 export const getTodayQuestion = async (
   dateKey: string
 ): Promise<DailyQuestion | null> => {
@@ -52,7 +26,6 @@ export const getTodayQuestion = async (
   return { id: snap.id, ...(snap.data() as Omit<DailyQuestion, "id">) };
 };
 
-// Fetch today's solution from a separate collection
 export const getTodaySolution = async (
   dateKey: string
 ): Promise<DailySolution | null> => {
@@ -62,7 +35,6 @@ export const getTodaySolution = async (
   return { id: snap.id, ...(snap.data() as Omit<DailySolution, "id">) };
 };
 
-// Lock question after first view by creating a daily attempt doc
 export const lockQuestionAfterView = async (
   dateKey: string
 ): Promise<DailyAttempt> => {
@@ -84,7 +56,6 @@ export const lockQuestionAfterView = async (
   return attemptSnap.data() as DailyAttempt;
 };
 
-// Submit an answer (text/pseudocode) and unlock solution
 export const submitAnswer = async (
   dateKey: string,
   questionId: string,
@@ -118,7 +89,6 @@ export const submitAnswer = async (
   return submissionRef.id;
 };
 
-// Update streak and attempt stats (idempotent for same-day submissions)
 export const updateUserStreak = async (dateKey: string) => {
   const user = auth.currentUser;
   if (!user) throw new Error("User not authenticated");
@@ -141,7 +111,6 @@ export const updateUserStreak = async (dateKey: string) => {
 
     const lastDate: string | null = data.lastAttemptDate ?? null;
 
-    // If already attempted today, do nothing
     if (lastDate === dateKey) {
       return data;
     }
@@ -158,8 +127,8 @@ export const updateUserStreak = async (dateKey: string) => {
       if (gap === 1) {
         currentStreak += 1;
       } else if (gap > 1) {
-        missedDays += gap - 1; // days missed between last attempt and today
-        currentStreak = 1; // reset streak after a miss
+        missedDays += gap - 1;
+        currentStreak = 1;
       }
     }
 

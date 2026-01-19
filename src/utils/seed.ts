@@ -1,8 +1,3 @@
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../services/firebase";
-import { getDateKey } from "../services/dailyQuestionService";
-
-// Sample questions pool
 const questions = [
   {
     title: "Two Sum",
@@ -51,7 +46,6 @@ const questions = [
   },
 ];
 
-// Seed today's question with a random question from the pool
 export const seedTodayQuestion = async () => {
   const dateKey = getDateKey();
   const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
@@ -70,7 +64,6 @@ export const seedTodayQuestion = async () => {
   });
 };
 
-// Seed a specific question for a specific date
 export const seedQuestionForDate = async (dateKey: string, questionIndex: number) => {
   const question = questions[questionIndex % questions.length];
 

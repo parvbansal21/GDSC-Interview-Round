@@ -1,4 +1,3 @@
-// Date helpers for UI formatting
 
 export const formatDateKey = (dateKey: string) => {
   const [y, m, d] = dateKey.split("-").map(Number);
